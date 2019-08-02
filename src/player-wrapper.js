@@ -262,6 +262,28 @@ PlayerWrapper.prototype.playerDisposedListener = function() {
  * pre-roll.
  */
 PlayerWrapper.prototype.onReadyForPreroll = function() {
+  var cuePoints = this.controller.getAdsManager().getCuePoints();
+  if (cuePoints.length === 0 || !cuePoints.includes(0)) {
+
+    // The `nopreroll` event simplifies logic in an underlying player.
+    // It's important to trigger this event after the `readyforpreroll` event.
+    // If it's triggered beforehand (for example right after the `adsready`),
+    // the autoplay restriction might reject AdsManager initialization.
+
+    // Non VMAP
+    //
+    // Metadata don't have cue points (no schedule). An ad can start any time.
+    // It's not possible to know in advance if an ad will be triggered at the beginning or not.
+    // We assume there isn't a preroll and the `nopreroll` is triggered.
+
+    // VMAP
+    //
+    // Metadata have cue points (schedule). A zero cue point indicates a preroll.
+    // Trigger the `nopreroll` is triggered if there is a zero cue point.
+
+    this.onNoPreroll();
+  }
+
   this.controller.onPlayerReadyForPreroll();
 };
 
@@ -533,6 +555,12 @@ PlayerWrapper.prototype.onAdsReady = function() {
   this.vjsPlayer.trigger('adsready');
 };
 
+/**
+ * Triggers nopreroll for contrib-ads.
+ */
+PlayerWrapper.prototype.onNoPreroll = function () {
+  this.vjsPlayer.trigger('nopreroll');
+};
 
 /**
  * Changes the player source.
