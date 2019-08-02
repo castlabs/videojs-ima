@@ -254,6 +254,28 @@ PlayerWrapper.prototype.playerDisposedListener = function () {
  * pre-roll.
  */
 PlayerWrapper.prototype.onReadyForPreroll = function () {
+  var cuePoints = this.controller.getAdsManager().getCuePoints();
+  if (cuePoints.length === 0 || !cuePoints.includes(0)) {
+
+    // The `nopreroll` event simplifies logic in an underlying player.
+    // It's important to trigger this event after the `readyforpreroll` event.
+    // If it's triggered beforehand (for example right after the `adsready`),
+    // the autoplay restriction might reject AdsManager initialization.
+
+    // Non VMAP
+    //
+    // Metadata don't have cue points (no schedule). An ad can start any time.
+    // It's not possible to know in advance if an ad will be triggered at the beginning or not.
+    // We assume there isn't a preroll and the `nopreroll` is triggered.
+
+    // VMAP
+    //
+    // Metadata have cue points (schedule). A zero cue point indicates a preroll.
+    // Trigger the `nopreroll` is triggered if there is a zero cue point.
+
+    this.onNoPreroll();
+  }
+
   this.controller.onPlayerReadyForPreroll();
 };
 
@@ -483,12 +505,18 @@ PlayerWrapper.prototype.onAdStart = function () {
  */
 PlayerWrapper.prototype.onAllAdsCompleted = function () {
   if (this.contentComplete == true) {
-    if (this.vjsPlayer.currentSrc() != this.contentSource) {
-      this.vjsPlayer.src({
-        src: this.contentSource,
-        type: this.contentSourceType
-      });
-    }
+
+    // When ad break is completed, the ads manager triggers
+    // the CONTENT_RESUME_REQUESTED event. The player
+    // should be responsible for resuming main content.
+    // The `this.vjsPlayer.src` call might caused unwanted replay.
+
+    // if (this.vjsPlayer.currentSrc() != this.contentSource) {
+    //   this.vjsPlayer.src({
+    //     src: this.contentSource,
+    //     type: this.contentSourceType,
+    //   });
+    // }
     this.controller.onContentAndAdsCompleted();
   }
 };
@@ -498,6 +526,13 @@ PlayerWrapper.prototype.onAllAdsCompleted = function () {
  */
 PlayerWrapper.prototype.onAdsReady = function () {
   this.vjsPlayer.trigger('adsready');
+};
+
+/**
+ * Triggers nopreroll for contrib-ads.
+ */
+PlayerWrapper.prototype.onNoPreroll = function () {
+  this.vjsPlayer.trigger('nopreroll');
 };
 
 /**
@@ -1101,7 +1136,7 @@ AdUi.prototype.setShowCountdown = function (showCountdownIn) {
   this.countdownDiv.style.display = this.showCountdown ? 'block' : 'none';
 };
 
-var name = "videojs-ima";
+var name = "@castlabs/videojs-ima";
 var version = "1.6.0";
 var license = "Apache-2.0";
 var main = "./dist/videojs.ima.js";
