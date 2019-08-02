@@ -537,12 +537,18 @@ PlayerWrapper.prototype.onAdStart = function() {
  */
 PlayerWrapper.prototype.onAllAdsCompleted = function() {
   if (this.contentComplete == true) {
-    if (this.vjsPlayer.currentSrc() != this.contentSource) {
-      this.vjsPlayer.src({
-        src: this.contentSource,
-        type: this.contentSourceType,
-      });
-    }
+
+    // When ad break is completed, the ads manager triggers
+    // the CONTENT_RESUME_REQUESTED event. The player
+    // should be responsible for resuming main content.
+    // The `this.vjsPlayer.src` call might caused unwanted replay.
+
+    // if (this.vjsPlayer.currentSrc() != this.contentSource) {
+    //   this.vjsPlayer.src({
+    //     src: this.contentSource,
+    //     type: this.contentSourceType,
+    //   });
+    // }
     this.controller.onContentAndAdsCompleted();
   }
 };
